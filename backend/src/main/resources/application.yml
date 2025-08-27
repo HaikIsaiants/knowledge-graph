@@ -1,0 +1,68 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: knowledge-graph-backend
+  
+  datasource:
+    url: jdbc:postgresql://127.0.0.1:5432/knowledge_graph
+    username: postgres
+    password: postgres
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    default-property-inclusion: NON_NULL
+
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+# Application-specific settings
+ingestion:
+  upload:
+    max-file-size: 10485760  # 10MB in bytes
+    allowed-extensions: csv,json,pdf,md,txt,html,xml
+    storage-path: ./uploads
+  processing:
+    chunk-size: 1000
+    chunk-overlap: 0.2
+    batch-size: 100
+  extraction:
+    rules-path: classpath:extraction-rules.yml
+
+# Search configuration
+search:
+  vector:
+    threshold: 0.7
+    k: 10
+  hybrid:
+    fts_weight: 0.5
+    vector_weight: 0.5
+  cache:
+    ttl: 300  # 5 minutes in seconds
+    max-size: 1000
+
+logging:
+  level:
+    com.knowledgegraph: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %level - %msg%n"

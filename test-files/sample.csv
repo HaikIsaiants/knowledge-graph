@@ -1,0 +1,6 @@
+name,type,description,related_to
+"John Doe",PERSON,"Software Engineer at TechCorp","TechCorp"
+"TechCorp",ORGANIZATION,"Technology company founded in 2010","Silicon Valley"
+"Silicon Valley",LOCATION,"Tech hub in California","California"
+"Project Alpha",PROJECT,"AI research project","John Doe"
+"Machine Learning",CONCEPT,"Branch of artificial intelligence","Project Alpha"

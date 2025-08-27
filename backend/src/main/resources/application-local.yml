@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/knowledge_graph
+    username: postgres
+    password: Gusd2629064880?
+  jpa:
+    hibernate:
+      ddl-auto: update
