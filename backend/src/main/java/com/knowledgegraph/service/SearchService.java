@@ -82,10 +82,10 @@ public class SearchService {
         String sql = """
             SELECT n.id, n.type, n.name, n.properties, n.source_uri, 
                    n.created_at, n.updated_at,
-                   ts_rank(n.search_vector, plainto_tsquery('english', ?)) as score,
-                   search_with_highlight(?, n.name || ' ' || COALESCE(n.properties::text, '')) as snippet
+                   ts_rank(to_tsvector('english', n.name || ' ' || COALESCE(n.properties::text, '')), plainto_tsquery('english', ?)) as score,
+                   kg.search_with_highlight(?, n.name || ' ' || COALESCE(n.properties::text, '')) as snippet
             FROM kg.nodes n
-            WHERE n.search_vector @@ plainto_tsquery('english', ?)
+            WHERE to_tsvector('english', n.name || ' ' || COALESCE(n.properties::text, '')) @@ plainto_tsquery('english', ?)
             ORDER BY score DESC
             LIMIT ? OFFSET ?
             """;
@@ -114,7 +114,7 @@ public class SearchService {
         // Get total count
         String countSql = """
             SELECT COUNT(*) FROM kg.nodes n
-            WHERE n.search_vector @@ plainto_tsquery('english', ?)
+            WHERE to_tsvector('english', n.name || ' ' || COALESCE(n.properties::text, '')) @@ plainto_tsquery('english', ?)
             """;
         Long totalCount = jdbcTemplate.queryForObject(countSql, Long.class, query);
         
@@ -224,7 +224,7 @@ public class SearchService {
         String sql = """
             SELECT type, COUNT(*) as count
             FROM kg.nodes n
-            WHERE n.search_vector @@ plainto_tsquery('english', ?)
+            WHERE to_tsvector('english', n.name || ' ' || COALESCE(n.properties::text, '')) @@ plainto_tsquery('english', ?)
             GROUP BY type
             """;
         
