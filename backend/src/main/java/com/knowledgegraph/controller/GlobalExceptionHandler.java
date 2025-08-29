@@ -3,9 +3,12 @@ package com.knowledgegraph.controller;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.server.ResponseStatusException;
+import jakarta.validation.ConstraintViolationException;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -23,6 +26,26 @@ public class GlobalExceptionHandler {
         return ResponseEntity
             .status(ex.getStatusCode())
             .body(createErrorResponse(ex.getReason(), ex.getStatusCode().value()));
+    }
+    
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> handleValidationException(MethodArgumentNotValidException ex) {
+        StringBuilder errors = new StringBuilder();
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            errors.append(error.getDefaultMessage()).append("; ");
+        }
+        log.warn("Validation error: {}", errors.toString());
+        return ResponseEntity
+            .badRequest()
+            .body(createErrorResponse(errors.toString(), HttpStatus.BAD_REQUEST.value()));
+    }
+    
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleConstraintViolationException(ConstraintViolationException ex) {
+        log.warn("Constraint violation: {}", ex.getMessage());
+        return ResponseEntity
+            .badRequest()
+            .body(createErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST.value()));
     }
     
     @ExceptionHandler(IllegalArgumentException.class)

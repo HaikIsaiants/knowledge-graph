@@ -109,13 +109,12 @@ public class PdfIngestionService extends AbstractIngestionService {
                         
                         if (pageText != null && !pageText.trim().isEmpty()) {
                             // Use TextChunkingService for consistent chunking
-                            List<TextChunkingService.TextChunk> chunks = 
-                                textChunkingService.chunkText(pageText.trim(), chunkSize, 
-                                    (double) chunkOverlap / chunkSize);
+                            List<String> chunks = 
+                                textChunkingService.chunkText(pageText.trim(), chunkSize, chunkOverlap);
                             
                             for (int chunkIndex = 0; chunkIndex < chunks.size(); chunkIndex++) {
-                                TextChunkingService.TextChunk chunk = chunks.get(chunkIndex);
-                                Node node = createDocumentNode(chunk.getContent(), document, 
+                                String chunkContent = chunks.get(chunkIndex);
+                                Node node = createDocumentNode(chunkContent, document, 
                                     pageNum, chunkIndex + 1, chunks.size());
                                 if (node != null) {
                                     createdNodeIds.add(node.getId());

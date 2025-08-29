@@ -14,14 +14,17 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.constraints.NotBlank;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/search")
 @RequiredArgsConstructor
 @Slf4j
+@Validated
 @Tag(name = "Search", description = "Search and discovery endpoints")
 public class SearchController {
     
@@ -33,7 +36,7 @@ public class SearchController {
     @Operation(summary = "Full-text search", 
                description = "Search nodes and documents using full-text search")
     public ResponseEntity<SearchResponseDTO> search(
-            @RequestParam String q,
+            @RequestParam @NotBlank(message = "Search query cannot be empty") String q,
             @RequestParam(required = false) NodeType type,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -54,7 +57,7 @@ public class SearchController {
     @Operation(summary = "Vector similarity search", 
                description = "Find similar content using vector embeddings")
     public ResponseEntity<SearchResponseDTO> vectorSearch(
-            @RequestParam String q,
+            @RequestParam @NotBlank(message = "Search query cannot be empty") String q,
             @RequestParam(required = false) Double threshold,
             @RequestParam(defaultValue = "10") int limit) {
         
@@ -67,7 +70,7 @@ public class SearchController {
                description = "Combine full-text and vector search with configurable weights")
     public ResponseEntity<SearchResponseDTO> hybridSearch(
             @Parameter(description = "Search query") 
-            @RequestParam String q,
+            @RequestParam @NotBlank(message = "Search query cannot be empty") String q,
             
             @Parameter(description = "FTS weight (0.0-1.0)") 
             @RequestParam(required = false) Double ftsWeight,
@@ -98,7 +101,7 @@ public class SearchController {
                description = "Automatically adjust search weights based on result quality")
     public ResponseEntity<SearchResponseDTO> adaptiveSearch(
             @Parameter(description = "Search query") 
-            @RequestParam String q,
+            @RequestParam @NotBlank(message = "Search query cannot be empty") String q,
             
             @Parameter(description = "Page number") 
             @RequestParam(defaultValue = "0") int page,
@@ -129,7 +132,7 @@ public class SearchController {
     @GetMapping("/suggest")
     @Operation(summary = "Get search suggestions", 
                description = "Get suggested queries based on the input")
-    public ResponseEntity<String[]> getSuggestions(@RequestParam String q) {
+    public ResponseEntity<String[]> getSuggestions(@RequestParam @NotBlank(message = "Search query cannot be empty") String q) {
         log.debug("Getting suggestions for: '{}'", q);
         return ResponseEntity.ok(searchService.getSuggestedQueries(q));
     }
@@ -139,7 +142,7 @@ public class SearchController {
                description = "Search within document content")
     public ResponseEntity<SearchResponseDTO> searchDocuments(
             @Parameter(description = "Search query") 
-            @RequestParam String q,
+            @RequestParam @NotBlank(message = "Search query cannot be empty") String q,
             
             @Parameter(description = "Page number") 
             @RequestParam(defaultValue = "0") int page,

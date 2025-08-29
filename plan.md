@@ -157,85 +157,104 @@ A personal knowledge graph system with hybrid search capabilities, built with Vu
 
 ---
 
-## Section 5: Advanced Features
+## Section 5: Critical Bug Fixes & System Stabilization
 
-### 5.1 Incremental Updates
-- Implement ETag/Last-Modified tracking for sources
-- Create update detection service
-- Add differential update logic
-- Implement version history for nodes
-- Create audit log for changes
+### 5.1 Database Schema Issues - CRITICAL
+**Problem**: PostgreSQL enum type `node_type` causing SQL errors when querying nodes by type
+- **Error**: `operator does not exist: kg.node_type = character varying`
+- **Root Cause**: JPA/Hibernate trying to compare custom enum type with VARCHAR parameter
+- **Fix Required**:
+  - Convert `node_type` column from enum to VARCHAR in database
+  - Or add explicit type casting in queries: `CAST(? AS kg.node_type)`
+  - Update all repository methods using node type filtering
+  - Test with integration tests to verify fix
 
-### 5.2 Export & Import
-- Add export to JSON/CSV functionality
-- Implement graph export in Cypher format
-- Create backup/restore endpoints
-- Add data migration tools
-- Implement bulk import with validation
+### 5.2 Missing NodeType Enum Values - HIGH
+**Problem**: Frontend requests node types that don't exist in backend enum
+- **Missing Types**: `LOCATION`, `PROJECT` 
+- **Current Types**: `ENTITY`, `CONCEPT`, `SECTION`, `REFERENCE`, `NOTE`, `SYSTEM`, `PERSON`, `ORGANIZATION`, `EVENT`, `PLACE`, `ITEM`, `DOCUMENT`
+- **Fix Required**:
+  - Add missing types to `NodeType.java` enum
+  - Or remove these types from frontend requests
+  - Ensure frontend and backend enums are synchronized
+  - Add validation test to prevent future mismatches
 
-### 5.3 Performance Optimization
-- Add Redis caching layer
-- Implement database query optimization
-- Add API response compression
-- Create database indexes strategically
-- Implement connection pooling
+### 5.3 Search Functionality Broken - CRITICAL
+**Problem**: All search endpoints returning 500 errors
+- **Affected Endpoints**: `/api/search`, `/api/search/vector`, `/api/search/hybrid`
+- **Root Cause**: Missing PostgreSQL functions `search_with_highlight` and `find_similar_vectors`
+- **Fix Required**:
+  - Run database migration to create missing functions
+  - Verify pgvector extension is properly installed
+  - Test full-text search configuration
+  - Validate search queries with actual data
 
-### 5.4 Authentication & Security
-- Add basic JWT authentication
-- Implement rate limiting
-- Add input sanitization
-- Create user session management
-- Implement CORS configuration
+### 5.4 File Upload Pipeline Failures - HIGH
+**Problem**: File upload endpoint `/api/files/upload` returns 500 error
+- **Error**: Multipart boundary parsing issues
+- **Root Cause**: Controller expects different multipart format than tests provide
+- **Fix Required**:
+  - Fix FileUploadController multipart handling
+  - Add proper `@RequestPart` annotations
+  - Test with actual file uploads from frontend
+  - Add comprehensive error messages for debugging
 
----
+### 5.5 Empty Search Validation - MEDIUM
+**Problem**: Empty search query returns 500 instead of 400 Bad Request
+- **Current**: Throws internal exception for empty query
+- **Expected**: Return 400 with validation error message
+- **Fix Required**:
+  - Add `@NotBlank` validation to search query parameter
+  - Handle validation exceptions in GlobalExceptionHandler
+  - Return proper error response with message
+  - Test all edge cases (null, empty, whitespace)
 
-## Section 6: Testing & Documentation
+### 5.6 Integration Test Infrastructure - HIGH
+**Problem**: Integration tests can't run properly
+- **Issues**:
+  - Tests trying to start own Spring context fail with database issues
+  - Missing TestConfiguration class referenced everywhere
+  - Test database not properly isolated from main database
+- **Fix Required**:
+  - Create proper TestConfiguration class
+  - Use @TestPropertySource for test database
+  - Consider using Testcontainers for PostgreSQL
+  - Separate integration tests from unit tests properly
 
-### 6.1 Backend Testing
-- Write unit tests for services using JUnit 5
-- Add integration tests for repositories
-- Create API tests using MockMvc
-- Add test data fixtures
-- Implement test coverage reporting
+### 5.7 OpenAI API Dependency - MEDIUM
+**Problem**: Embedding generation requires OpenAI API key but not documented
+- **Impact**: Ingestion pipeline may fail without API key
+- **Current**: MockEmbeddingService used but real service expects OpenAI
+- **Fix Required**:
+  - Make OpenAI optional with fallback to mock embeddings
+  - Document API key requirement clearly
+  - Add configuration flag to disable embeddings
+  - Consider local embedding model alternative
 
-### 6.2 Frontend Testing
-- Set up Vitest for unit testing
-- Write component tests for Vue components
-- Add E2E tests using Playwright
-- Create visual regression tests
-- Add accessibility testing
+### 5.8 Database Connection Issues - HIGH
+**Problem**: Application expects database on wrong port
+- **Current Config**: Port 5433 in application.yml
+- **Docker Default**: PostgreSQL usually on 5432
+- **Fix Required**:
+  - Standardize on port 5432
+  - Update docker-compose.yml and application.yml
+  - Add environment variable override capability
+  - Document port configuration clearly
 
-### 6.3 Documentation
-- Create API documentation using Swagger/OpenAPI
-- Write user guide with screenshots
-- Add developer setup instructions
-- Create architecture diagrams
-- Document configuration options
+### Implementation Priority:
+1. **Immediate** (Blocks all functionality):
+   - Fix database schema issues (5.1)
+   - Fix search functionality (5.3)
+   - Fix file upload (5.4)
 
----
+2. **High** (Major features broken):
+   - Sync NodeType enums (5.2)
+   - Fix database connection (5.8)
+   - Fix integration tests (5.6)
 
-## Section 7: Deployment & DevOps
-
-### 7.1 Containerization
-- Create Dockerfile for Spring Boot app
-- Create Dockerfile for Vue frontend
-- Update docker-compose for full stack
-- Add environment variable configuration
-- Create health checks for containers
-
-### 7.2 CI/CD Pipeline
-- Set up GitHub Actions workflow
-- Add build and test stages
-- Create Docker image publishing
-- Add dependency scanning
-- Implement automated releases
-
-### 7.3 Production Readiness
-- Add application monitoring
-- Configure structured logging
-- Set up error tracking
-- Add performance metrics
-- Create backup strategies
+3. **Medium** (Quality improvements):
+   - Fix validation errors (5.5)
+   - Document/fix OpenAI dependency (5.7)
 
 ---
 
@@ -245,9 +264,7 @@ A personal knowledge graph system with hybrid search capabilities, built with Vu
 2. **Phase 2 (Ingestion)**: ✓ COMPLETED - Section 2 ingestion pipeline fully implemented and tested
 3. **Phase 3 (Search)**: ✓ COMPLETED - Section 3 fully implemented, tested, and optimized
 4. **Phase 4 (UI)**: ✓ COMPLETED - Section 4 frontend user interface fully implemented
-5. **Phase 5 (Quality)**: Add advanced features from Section 5
-6. **Phase 6 (Deploy)**: Complete testing and documentation (Section 6)
-7. **Phase 7 (Deploy)**: Prepare for deployment (Section 7)
+5. **Phase 5 (Bug Fixes)**: IN PROGRESS - Section 5 critical bug fixes and stabilization
 
 ## Success Metrics
 - Successfully ingest and process 5+ different file types

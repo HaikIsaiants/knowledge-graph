@@ -23,14 +23,14 @@ public interface NodeRepository extends JpaRepository<Node, UUID> {
     // Simple utility methods
     List<Node> findBySourceUri(String sourceUri);
     
-    @Query(value = "SELECT EXISTS(SELECT 1 FROM kg.nodes WHERE name = :name AND type = CAST(:type AS kg.node_type))", nativeQuery = true)
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM kg.nodes WHERE name = :name AND type = :type)", nativeQuery = true)
     boolean existsByNameAndType(@Param("name") String name, @Param("type") String type);
     
     default boolean existsByNameAndType(String name, NodeType type) {
         return existsByNameAndType(name, type.name());
     }
     
-    @Query(value = "SELECT * FROM kg.nodes WHERE name = :name AND type = CAST(:type AS kg.node_type)", nativeQuery = true)
+    @Query(value = "SELECT * FROM kg.nodes WHERE name = :name AND type = :type", nativeQuery = true)
     List<Node> findByNameAndType(@Param("name") String name, @Param("type") String type);
     
     default List<Node> findByNameAndType(String name, NodeType type) {
@@ -41,7 +41,7 @@ public interface NodeRepository extends JpaRepository<Node, UUID> {
     @Query(value = """
         SELECT n.* FROM kg.nodes n 
         WHERE (:query IS NULL OR n.search_vector @@ plainto_tsquery('english', :query))
-          AND (:type IS NULL OR n.type = CAST(:type AS text))
+          AND (:type IS NULL OR n.type = :type)
         ORDER BY ts_rank(n.search_vector, plainto_tsquery('english', :query)) DESC NULLS LAST
         """, nativeQuery = true)
     Page<Node> search(@Param("query") String query, @Param("type") String type, Pageable pageable);

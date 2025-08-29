@@ -8,9 +8,9 @@ spring:
     name: knowledge-graph-backend
   
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/knowledge_graph
-    username: postgres
-    password: postgres
+    url: jdbc:postgresql://${DB_HOST:127.0.0.1}:${DB_PORT:5433}/${DB_NAME:knowledge_graph}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 10
@@ -42,7 +42,7 @@ ingestion:
     storage-path: ./uploads
   processing:
     chunk-size: 1000
-    chunk-overlap: 0.2
+    chunk-overlap: 100  # Overlap in characters (not percentage)
     batch-size: 100
   extraction:
     rules-path: classpath:extraction-rules.yml
