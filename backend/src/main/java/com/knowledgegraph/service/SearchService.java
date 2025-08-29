@@ -150,7 +150,7 @@ public class SearchService {
             synonyms.entrySet().stream()
                 .filter(e -> query.toLowerCase().contains(e.getKey()))
                 .flatMap(e -> e.getValue().stream()
-                    .map(synonym -> query.replaceIgnoreCase(e.getKey(), synonym)))
+                    .map(synonym -> query.toLowerCase().replace(e.getKey(), synonym)))
         )
         .distinct()
         .limit(5)

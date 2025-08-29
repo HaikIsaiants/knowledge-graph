@@ -47,4 +47,9 @@ public interface DocumentRepository extends JpaRepository<Document, UUID> {
 
     // Simple utility methods
     boolean existsByUri(String uri);
+    
+    // Search by content (needed by SearchService)
+    default Page<Document> searchByContent(String query, Pageable pageable) {
+        return search(query, null, pageable);
+    }
 }

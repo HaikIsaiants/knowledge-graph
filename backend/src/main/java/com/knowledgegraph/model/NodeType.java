@@ -1,11 +1,18 @@
 package com.knowledgegraph.model;
 
 public enum NodeType {
+    ENTITY,
+    CONCEPT,
+    SECTION,
+    REFERENCE,
+    NOTE,
+    SYSTEM,
     PERSON,
     ORGANIZATION,
     EVENT,
     PLACE,
     ITEM,
-    CONCEPT,
-    DOCUMENT
+    DOCUMENT,
+    LOCATION,  // Added for frontend compatibility
+    PROJECT    // Added for frontend compatibility
 }

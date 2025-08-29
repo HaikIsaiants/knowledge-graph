@@ -20,6 +20,14 @@ public interface EdgeRepository extends JpaRepository<Edge, UUID> {
     Page<Edge> findByTarget_Id(UUID targetId, Pageable pageable);
     Page<Edge> findByType(EdgeType type, Pageable pageable);
     
+    // Additional finders without pagination (needed by services)
+    default List<Edge> findBySourceId(UUID sourceId) {
+        return findBySource_Id(sourceId, Pageable.unpaged()).getContent();
+    }
+    default List<Edge> findByTargetId(UUID targetId) {
+        return findByTarget_Id(targetId, Pageable.unpaged()).getContent();
+    }
+    
     // Simple utility methods
     List<Edge> findBySource_IdAndTarget_Id(UUID sourceId, UUID targetId);
     List<Edge> findBySourceUri(String sourceUri);

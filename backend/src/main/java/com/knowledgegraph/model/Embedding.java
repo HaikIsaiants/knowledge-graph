@@ -33,8 +33,8 @@ public class Embedding {
     @Column(name = "content_snippet", columnDefinition = "TEXT")
     private String contentSnippet;
 
-    // Using float array for now, will be converted to vector type in production
-    @Column(columnDefinition = "float4[]")
+    // Using pgvector vector type for similarity search
+    @Column(columnDefinition = "vector")
     private float[] vector;
 
     @Column(name = "model_version", length = 50)

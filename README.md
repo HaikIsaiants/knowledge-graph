@@ -121,6 +121,7 @@ A personal knowledge graph system with hybrid search capabilities, featuring gra
 - **Node.js 18+** (for Vue 3 frontend)
 - **PostgreSQL 15+** (native installation)
 - **Maven** (included in tools/ directory)
+- **OpenAI API Key** (optional - for production embeddings; system uses mock embeddings by default)
 
 ### 1. Database Setup
 
@@ -373,7 +374,7 @@ The system now supports comprehensive data ingestion from multiple file formats:
 3. **Job Queue**: Async processing with progress tracking
 4. **Parsing**: Format-specific parsers extract content and structure
 5. **Chunking**: Text split into overlapping chunks for processing
-6. **Embedding**: Vector representations generated for similarity search
+6. **Embedding**: Vector representations generated (mock 384-dim vectors by default, OpenAI API optional)
 7. **Storage**: Processed data stored in PostgreSQL with relationships
 
 ## Search Capabilities

@@ -1,4 +1,5 @@
-import { ref, customRef, Ref } from 'vue'
+import { ref, customRef } from 'vue'
+import type { Ref } from 'vue'
 
 export function useDebounce<T>(value: Ref<T>, delay = 300) {
   let timeout: NodeJS.Timeout | undefined

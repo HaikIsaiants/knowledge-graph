@@ -20,7 +20,7 @@ import java.util.UUID;
 
 @Slf4j
 @RestController
-@RequestMapping("/ingest")
+@RequestMapping("/files")
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class FileUploadController {
@@ -30,7 +30,7 @@ public class FileUploadController {
 
     @PostMapping("/upload")
     public ResponseEntity<FileUploadResponse> uploadFile(
-            @RequestParam("file") MultipartFile file) {
+            @RequestPart("file") MultipartFile file) {
         
         log.info("Received file upload request: {}", file.getOriginalFilename());
         
