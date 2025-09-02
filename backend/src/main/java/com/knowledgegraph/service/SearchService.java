@@ -83,7 +83,7 @@ public class SearchService {
             SELECT n.id, n.type, n.name, n.properties, n.source_uri, 
                    n.created_at, n.updated_at,
                    ts_rank(to_tsvector('english', n.name || ' ' || COALESCE(n.properties::text, '')), plainto_tsquery('english', ?)) as score,
-                   kg.search_with_highlight(?, n.name || ' ' || COALESCE(n.properties::text, '')) as snippet
+                   ts_headline('english', n.name || ' ' || COALESCE(n.properties::text, ''), plainto_tsquery('english', ?)) as snippet
             FROM kg.nodes n
             WHERE to_tsvector('english', n.name || ' ' || COALESCE(n.properties::text, '')) @@ plainto_tsquery('english', ?)
             ORDER BY score DESC

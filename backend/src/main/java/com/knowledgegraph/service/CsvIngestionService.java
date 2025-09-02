@@ -29,6 +29,7 @@ public class CsvIngestionService extends AbstractIngestionService {
 
     private final NodeRepository nodeRepository;
     private final FileStorageService fileStorageService;
+    private final EmbeddingService embeddingService;
 
     @Transactional
     public IngestionResult processCsvFile(String filePath, UUID jobId) {
@@ -133,7 +134,18 @@ public class CsvIngestionService extends AbstractIngestionService {
             // Update properties of existing node
             Node existingNode = existingNodes.get(0);
             existingNode.getProperties().putAll(properties);
-            return nodeRepository.save(existingNode);
+            Node savedNode = nodeRepository.save(existingNode);
+            
+            // Update embedding for the node
+            try {
+                String embeddingText = name + " " + properties.getOrDefault("description", "").toString();
+                embeddingService.createEmbedding(savedNode, embeddingText);
+                log.debug("Updated embedding for node: {}", name);
+            } catch (Exception e) {
+                log.error("Failed to update embedding for node {}: {}", name, e.getMessage());
+            }
+            
+            return savedNode;
         }
         
         // Create new node
@@ -146,6 +158,16 @@ public class CsvIngestionService extends AbstractIngestionService {
         
         Node savedNode = nodeRepository.save(node);
         log.debug("Created node: {} ({})", name, nodeType);
+        
+        // Generate embedding for the node
+        try {
+            String embeddingText = name + " " + properties.getOrDefault("description", "").toString();
+            embeddingService.createEmbedding(savedNode, embeddingText);
+            log.debug("Created embedding for node: {}", name);
+        } catch (Exception e) {
+            log.error("Failed to create embedding for node {}: {}", name, e.getMessage());
+            // Continue processing even if embedding fails
+        }
         
         return savedNode;
     }

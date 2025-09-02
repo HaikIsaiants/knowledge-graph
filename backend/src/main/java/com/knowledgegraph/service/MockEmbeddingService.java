@@ -16,10 +16,11 @@ import java.util.*;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@org.springframework.context.annotation.Profile("mock") // Only active in mock profile
 public class MockEmbeddingService implements EmbeddingService {
 
     private final EmbeddingRepository embeddingRepository;
-    private static final int EMBEDDING_DIMENSION = 384; // Typical small model dimension
+    private static final int EMBEDDING_DIMENSION = 384; // Mock dimension (use 1536 for OpenAI)
     private static final String MODEL_VERSION = "mock-v1.0";
     private final Random random = new Random();
 

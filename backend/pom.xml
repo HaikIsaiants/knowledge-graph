@@ -69,6 +69,13 @@
             <artifactId>jackson-databind</artifactId>
         </dependency>
         
+        <!-- OpenAI for Embeddings -->
+        <dependency>
+            <groupId>com.theokanning.openai-gpt3-java</groupId>
+            <artifactId>service</artifactId>
+            <version>0.18.2</version>
+        </dependency>
+        
         <!-- File Processing -->
         <dependency>
             <groupId>commons-io</groupId>
@@ -135,6 +142,14 @@
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
             <version>2.3.0</version>
+        </dependency>
+        
+        <!-- Dotenv for loading .env files -->
+        <dependency>
+            <groupId>io.github.cdimascio</groupId>
+            <artifactId>dotenv-java</artifactId>
+            <version>3.0.0</version>
+            <scope>test</scope>
         </dependency>
         
         <!-- Testing -->

@@ -40,6 +40,13 @@ public interface EmbeddingService {
      * Get the dimension of the embeddings
      */
     int getEmbeddingDimension();
+    
+    /**
+     * Get the dimension of the embeddings (convenience method)
+     */
+    default int getDimensions() {
+        return getEmbeddingDimension();
+    }
 
     /**
      * Calculate cosine similarity between two vectors
