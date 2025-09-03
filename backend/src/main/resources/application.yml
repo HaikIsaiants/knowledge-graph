@@ -31,13 +31,13 @@ spring:
   servlet:
     multipart:
       enabled: true
-      max-file-size: 10MB
-      max-request-size: 10MB
+      max-file-size: 50MB
+      max-request-size: 50MB
 
 # Application-specific settings
 ingestion:
   upload:
-    max-file-size: 10485760  # 10MB in bytes
+    max-file-size: 52428800  # 50MB in bytes
     allowed-extensions: csv,json,pdf,md,txt,html,xml
     storage-path: ./uploads
   processing:
@@ -65,6 +65,8 @@ openai:
     key: ${OPENAI_API_KEY:your-api-key-here}
   embedding:
     model: text-embedding-3-small
+  completion:
+    model: gpt-5-nano
 
 logging:
   level:

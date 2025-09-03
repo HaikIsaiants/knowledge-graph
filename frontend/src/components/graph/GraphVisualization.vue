@@ -209,7 +209,18 @@ const nodeColorMap = {
   CONCEPT: '#6366F1',
   DOCUMENT: '#6B7280',
   PROJECT: '#EC4899',
-  SYSTEM: '#F59E0B'
+  SYSTEM: '#F59E0B',
+  // New entity types
+  THEORY: '#A855F7',
+  TERM: '#14B8A6',
+  DATE: '#F43F5E',
+  SCHOOL_OF_THOUGHT: '#8B5CF6',
+  METHOD: '#06B6D4',
+  TECHNOLOGY: '#0EA5E9',
+  PRODUCT: '#84CC16',
+  LAW: '#DC2626',
+  PRINCIPLE: '#7C3AED',
+  OTHER: '#94A3B8'
 }
 
 // Get unique node types from data

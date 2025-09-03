@@ -241,7 +241,7 @@ const formatDate = (date: string) => {
 const refreshJobs = async () => {
   isLoading.value = true
   try {
-    const response = await axios.get('http://localhost:8080/api/ingest/jobs')
+    const response = await axios.get('http://localhost:8080/api/files/jobs')
     jobs.value = response.data
   } catch (error) {
     console.error('Failed to fetch jobs:', error)
@@ -268,7 +268,7 @@ const viewDetails = (job: Job) => {
 
 const retryJob = async (job: Job) => {
   try {
-    await axios.post(`http://localhost:8080/api/ingest/jobs/${job.id}/retry`)
+    await axios.post(`http://localhost:8080/api/files/jobs/${job.id}/retry`)
     refreshJobs()
   } catch (error) {
     console.error('Failed to retry job:', error)

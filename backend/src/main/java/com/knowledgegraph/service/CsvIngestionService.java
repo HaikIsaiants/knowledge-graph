@@ -30,6 +30,7 @@ public class CsvIngestionService extends AbstractIngestionService {
     private final NodeRepository nodeRepository;
     private final FileStorageService fileStorageService;
     private final EmbeddingService embeddingService;
+    private final GPTEntityExtractor gptEntityExtractor;
 
     @Transactional
     public IngestionResult processCsvFile(String filePath, UUID jobId) {
@@ -85,6 +86,50 @@ public class CsvIngestionService extends AbstractIngestionService {
                                  record.getRecordNumber(), e.getMessage());
                     }
                 }
+            }
+            
+            // Extract entities from all CSV text content using GPT
+            try {
+                log.info("Extracting entities from CSV content using GPT");
+                StringBuilder allContent = new StringBuilder();
+                
+                // Collect all text from CSV for entity extraction
+                CSVFormat csvFormat2 = CSVFormat.DEFAULT.builder()
+                    .setHeader()
+                    .setSkipHeaderRecord(true)
+                    .setIgnoreEmptyLines(true)
+                    .setTrim(true)
+                    .build();
+                    
+                try (Reader reader2 = new FileReader(path.toFile());
+                     CSVParser csvParser2 = new CSVParser(reader2, csvFormat2)) {
+                    
+                    for (CSVRecord record : csvParser2) {
+                        for (String value : record) {
+                            if (value != null && !value.trim().isEmpty()) {
+                                allContent.append(value).append(" ");
+                            }
+                        }
+                        allContent.append("\n");
+                    }
+                }
+                
+                // Extract entities using GPT
+                List<Node> extractedEntities = gptEntityExtractor.extractEntities(
+                    allContent.toString(),
+                    document.getId()
+                );
+                
+                // Add extracted entity IDs to the result
+                for (Node entity : extractedEntities) {
+                    createdNodeIds.add(entity.getId());
+                }
+                
+                log.info("Extracted {} entities from CSV content", extractedEntities.size());
+                
+            } catch (Exception e) {
+                log.warn("Failed to extract entities using GPT: {}", e.getMessage());
+                // Continue without entity extraction - not a fatal error
             }
             
             log.info("CSV processing complete. Total: {}, Success: {}, Errors: {}", 

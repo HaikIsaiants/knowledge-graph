@@ -139,6 +139,7 @@
 import { ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { healthApi } from '@/api/client'
+import { apiCall } from '@/api/client'
 
 const stats = ref({
   nodes: '0',
@@ -153,14 +154,19 @@ onMounted(async () => {
     const health = await healthApi.check()
     healthStatus.value = health
     
-    // TODO: Fetch actual stats from backend
+    // Fetch actual stats from backend
+    const graphStats = await apiCall<any>('GET', '/graph/stats')
+    
+    // Count documents from nodeTypes
+    const documentCount = graphStats.nodeTypes?.DOCUMENT || 0
+    
     stats.value = {
-      nodes: '24',
-      edges: '56',
-      documents: '12'
+      nodes: String(graphStats.totalNodes || 0),
+      edges: String(graphStats.totalEdges || 0),
+      documents: String(documentCount)
     }
   } catch (error) {
-    console.error('Failed to fetch health status:', error)
+    console.error('Failed to fetch stats:', error)
     healthStatus.value = { status: 'DOWN' }
   }
 })

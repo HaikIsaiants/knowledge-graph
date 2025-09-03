@@ -36,6 +36,7 @@ public class PdfIngestionService extends AbstractIngestionService {
 
     private final NodeRepository nodeRepository;
     private final TextChunkingService textChunkingService;
+    private final GPTEntityExtractor gptEntityExtractor;
 
     @Value("${pdf.ingestion.chunk-size:1000}")
     private int defaultChunkSize;
@@ -74,7 +75,15 @@ public class PdfIngestionService extends AbstractIngestionService {
             }
 
             // First, create a document record for the PDF file
-            Document document = createDocumentRecord(filePath, "application/pdf", "PDF");
+            log.info("About to create document record");
+            Document document = null;
+            try {
+                document = createDocumentRecord(filePath, "application/pdf", "PDF");
+                log.info("Document record created with ID: {}", document.getId());
+            } catch (Exception e) {
+                log.error("Failed to create document record: {}", e.getMessage(), e);
+                throw e;
+            }
             createdDocumentIds.add(document.getId());
 
             // Extract metadata and content using both PDFBox and Tika for comprehensive extraction
@@ -83,7 +92,9 @@ public class PdfIngestionService extends AbstractIngestionService {
             document = documentRepository.save(document);
 
             // Process PDF content with page-level chunking
+            log.info("About to load PDF file: {}", pdfFile.getAbsolutePath());
             try (PDDocument pdDocument = Loader.loadPDF(pdfFile)) {
+                log.info("PDF loaded successfully");
                 
                 if (pdDocument.isEncrypted()) {
                     AccessPermission permission = pdDocument.getCurrentAccessPermission();
@@ -140,6 +151,35 @@ public class PdfIngestionService extends AbstractIngestionService {
                 }
             }
 
+            // Extract entities from the full document text using GPT
+            try {
+                log.info("Extracting entities from PDF document using GPT");
+                StringBuilder fullText = new StringBuilder();
+                
+                // Collect all text from the document for entity extraction
+                try (PDDocument pdDocForEntities = Loader.loadPDF(pdfFile)) {
+                    PDFTextStripper fullTextStripper = new PDFTextStripper();
+                    fullText.append(fullTextStripper.getText(pdDocForEntities));
+                }
+                
+                // Extract entities using GPT
+                List<Node> extractedEntities = gptEntityExtractor.extractEntities(
+                    fullText.toString(), 
+                    document.getId()
+                );
+                
+                // Add extracted entity IDs to the result
+                for (Node entity : extractedEntities) {
+                    createdNodeIds.add(entity.getId());
+                }
+                
+                log.info("Extracted {} entities from PDF document", extractedEntities.size());
+                
+            } catch (Exception e) {
+                log.warn("Failed to extract entities using GPT: {}", e.getMessage());
+                // Continue without entity extraction - not a fatal error
+            }
+            
             log.info("PDF processing complete. Pages: {}, Chunks: {}, Success: {}, Errors: {}", 
                      totalPages, totalChunks, successCount, errorCount);
 
@@ -168,53 +208,66 @@ public class PdfIngestionService extends AbstractIngestionService {
         Map<String, Object> metadata = new HashMap<>();
         
         // Extract metadata using PDFBox
+        log.info("Attempting to load PDF for metadata extraction: {}", pdfFile.getName());
         try (PDDocument document = Loader.loadPDF(pdfFile)) {
+            log.info("PDF loaded for metadata extraction");
             PDDocumentInformation info = document.getDocumentInformation();
             
             if (info != null) {
-                addMetadataField(metadata, "title", info.getTitle());
-                addMetadataField(metadata, "author", info.getAuthor());
-                addMetadataField(metadata, "subject", info.getSubject());
-                addMetadataField(metadata, "keywords", info.getKeywords());
-                addMetadataField(metadata, "creator", info.getCreator());
-                addMetadataField(metadata, "producer", info.getProducer());
+                log.info("Getting PDF metadata fields");
+                try {
+                    log.debug("Getting title");
+                    addMetadataField(metadata, "title", info.getTitle());
+                    log.debug("Getting author");
+                    addMetadataField(metadata, "author", info.getAuthor());
+                    log.debug("Getting subject");
+                    addMetadataField(metadata, "subject", info.getSubject());
+                    log.debug("Getting keywords");
+                    addMetadataField(metadata, "keywords", info.getKeywords());
+                    log.debug("Getting creator");
+                    addMetadataField(metadata, "creator", info.getCreator());
+                    log.debug("Getting producer");
+                    addMetadataField(metadata, "producer", info.getProducer());
+                } catch (Exception e) {
+                    log.warn("Failed to get metadata field: {}", e.getMessage());
+                }
                 
-                if (info.getCreationDate() != null) {
-                    metadata.put("creationDate", info.getCreationDate().getTime().toString());
-                }
-                if (info.getModificationDate() != null) {
-                    metadata.put("modificationDate", info.getModificationDate().getTime().toString());
-                }
+                log.info("Skipping date metadata - known to hang on some PDFs");
+                // SKIP DATE METADATA - Causes hanging on certain PDFs
+                // The getCreationDate() and getModificationDate() methods can hang indefinitely
+                // on some PDFs with malformed date metadata
             }
             
-            metadata.put("numberOfPages", document.getNumberOfPages());
-            metadata.put("isEncrypted", document.isEncrypted());
-            metadata.put("version", document.getVersion());
+            log.info("Getting page count");
+            try {
+                metadata.put("numberOfPages", document.getNumberOfPages());
+            } catch (Exception e) {
+                log.warn("Failed to get page count: {}", e.getMessage());
+            }
+            
+            log.info("Getting encryption status");
+            try {
+                metadata.put("isEncrypted", document.isEncrypted());
+            } catch (Exception e) {
+                log.warn("Failed to get encryption status: {}", e.getMessage());
+            }
+            
+            log.info("Getting PDF version");
+            try {
+                metadata.put("version", document.getVersion());
+            } catch (Exception e) {
+                log.warn("Failed to get PDF version: {}", e.getMessage());
+            }
+            
+            log.info("Metadata extraction complete");
             
         } catch (IOException e) {
             log.warn("Could not extract PDF metadata using PDFBox for file: {}", pdfFile.getPath(), e);
         }
         
-        // Extract additional metadata using Tika
-        try (FileInputStream inputStream = new FileInputStream(pdfFile)) {
-            BodyContentHandler handler = new BodyContentHandler(-1); // No content limit for metadata extraction
-            Metadata tikaMetadata = new Metadata();
-            PDFParser parser = new PDFParser();
-            ParseContext context = new ParseContext();
-            
-            parser.parse(inputStream, handler, tikaMetadata, context);
-            
-            // Add Tika-specific metadata
-            String[] metadataNames = tikaMetadata.names();
-            for (String name : metadataNames) {
-                if (!metadata.containsKey(name.toLowerCase())) {
-                    addMetadataField(metadata, name.toLowerCase(), tikaMetadata.get(name));
-                }
-            }
-            
-        } catch (Exception e) {
-            log.warn("Could not extract PDF metadata using Tika for file: {}", pdfFile.getPath(), e);
-        }
+        // SKIP TIKA METADATA - Causes hanging on certain PDFs
+        // Tika's PDF parser can hang indefinitely on some PDF files
+        log.info("Skipping Tika metadata extraction - known to hang on some PDFs");
         
         return metadata;
     }

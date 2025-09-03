@@ -162,7 +162,13 @@ const fetchNodeTypeCounts = async () => {
   try {
     // This would typically be a dedicated endpoint
     // For now, we'll simulate with multiple calls
-    const types: NodeType[] = ['PERSON', 'ORGANIZATION', 'EVENT', 'LOCATION', 'PLACE', 'CONCEPT', 'DOCUMENT', 'PROJECT', 'SYSTEM']
+    const types: NodeType[] = [
+      'PERSON', 'ORGANIZATION', 'EVENT', 'LOCATION', 'PLACE', 
+      'CONCEPT', 'DOCUMENT', 'PROJECT', 'SYSTEM',
+      // New entity types
+      'THEORY', 'TERM', 'DATE', 'SCHOOL_OF_THOUGHT', 
+      'METHOD', 'TECHNOLOGY', 'PRODUCT', 'LAW', 'PRINCIPLE', 'OTHER'
+    ]
     for (const type of types) {
       try {
         const response = await nodesApi.getByType(type, 0, 1)

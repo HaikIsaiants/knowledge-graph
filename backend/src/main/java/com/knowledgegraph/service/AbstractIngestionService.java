@@ -22,6 +22,7 @@ public abstract class AbstractIngestionService {
      * Creates a standard document record for any file type
      */
     protected Document createDocumentRecord(String filePath, String contentType, String ingestionType) {
+        log.info("Creating document record for: {}", filePath);
         Document document = new Document();
         document.setUri("file://" + filePath);
         document.setContentType(contentType);
@@ -33,7 +34,15 @@ public abstract class AbstractIngestionService {
         metadata.put("ingestedAt", LocalDateTime.now().toString());
         document.setMetadata(metadata);
         
-        return documentRepository.save(document);
+        log.info("About to save document to database");
+        try {
+            Document savedDoc = documentRepository.save(document);
+            log.info("Document saved successfully with ID: {}", savedDoc.getId());
+            return savedDoc;
+        } catch (Exception e) {
+            log.error("Database save failed: {}", e.getMessage(), e);
+            throw e;
+        }
     }
     
     /**

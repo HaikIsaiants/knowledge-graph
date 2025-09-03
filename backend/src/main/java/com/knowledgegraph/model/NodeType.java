@@ -14,5 +14,17 @@ public enum NodeType {
     ITEM,
     DOCUMENT,
     LOCATION,  // Added for frontend compatibility
-    PROJECT    // Added for frontend compatibility
+    PROJECT,   // Added for frontend compatibility
+    
+    // New types for comprehensive entity extraction
+    THEORY,
+    TERM,
+    DATE,
+    SCHOOL_OF_THOUGHT,
+    METHOD,
+    TECHNOLOGY,
+    PRODUCT,
+    LAW,
+    PRINCIPLE,
+    OTHER
 }

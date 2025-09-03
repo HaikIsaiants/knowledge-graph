@@ -19,7 +19,7 @@ public class IngestionJobService {
 
     private final Map<UUID, IngestionJob> jobs = new ConcurrentHashMap<>();
     private final BlockingQueue<IngestionJob> jobQueue = new LinkedBlockingQueue<>();
-    private final ExecutorService executorService = Executors.newFixedThreadPool(3);
+    private final ExecutorService executorService = Executors.newFixedThreadPool(10);
     private volatile boolean running = true;
     
     // Lazy injection to avoid circular dependency
@@ -42,10 +42,10 @@ public class IngestionJobService {
     @PostConstruct
     public void init() {
         // Start job processor threads
-        for (int i = 0; i < 3; i++) {
+        for (int i = 0; i < 10; i++) {
             executorService.submit(this::processJobs);
         }
-        log.info("IngestionJobService initialized with 3 worker threads");
+        log.info("IngestionJobService initialized with 10 worker threads");
     }
 
     @PreDestroy
