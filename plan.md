@@ -29,20 +29,22 @@ Extract all entities from documents (people, organizations, locations, concepts,
 ## Section 2: Relationship Extraction
 
 ### Goal
-Identify how entities are related to each other
+Extract relationships between entities during the entity extraction process
 
 ### Approach
-- Send entity pairs to GPT-5 nano
-- Get relationship type, direction, and confidence
-- Extract evidence from source text
-- Batch process for efficiency
+- Combined extraction: identify entities AND their relationships in a single pass
+- As GPT-5 nano reads through text, it extracts:
+  - Entities with their types and properties
+  - Relationships between those entities with evidence
+- More efficient than checking all possible entity pairs
+- Natural context preservation
 
 ### Tasks
-- [ ] Create GPTRelationshipExtractor service
-- [ ] Extend EdgeType enum with more types
-- [ ] Store relationship evidence and confidence
-- [ ] Add indirect relationship inference
-- [ ] Batch entity pairs in single API calls
+- [x] Modify GPTEntityExtractor to also extract relationships
+- [x] Extend EdgeType enum with more types (added 70+ relationship types)
+- [x] Store relationship evidence and confidence
+- [x] Return both entities and relationships from single API call
+- [x] Process relationships only between co-occurring entities
 
 ---
 

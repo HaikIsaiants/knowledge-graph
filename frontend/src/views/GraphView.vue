@@ -171,16 +171,22 @@ const getTypeColor = (type: NodeType) => {
 }
 
 const getNodeColor = (type: NodeType) => {
-  const colors: Record<NodeType, string> = {
-    PERSON: '#3b82f6',
-    ORGANIZATION: '#10b981',
-    EVENT: '#8b5cf6',
-    PLACE: '#f97316',
-    ITEM: '#eab308',
-    CONCEPT: '#6366f1',
-    DOCUMENT: '#6b7280'
+  const colors: Record<string, string> = {
+    PERSON: '#3b82f6',      // Blue
+    ORGANIZATION: '#10b981', // Green
+    EVENT: '#8b5cf6',        // Purple
+    PLACE: '#f97316',        // Orange
+    LOCATION: '#f97316',     // Orange (same as PLACE)
+    ITEM: '#eab308',         // Yellow
+    CONCEPT: '#6366f1',      // Indigo
+    DOCUMENT: '#6b7280',     // Gray
+    DATE: '#ef4444',         // Red
+    PRODUCT: '#14b8a6',      // Teal
+    TERM: '#a855f7',         // Purple
+    ENTITY: '#94a3b8',       // Slate
+    OTHER: '#737373',        // Neutral gray
   }
-  return colors[type]
+  return colors[type] || '#94a3b8' // Default to slate if type not found
 }
 
 const initializeGraph = async () => {
@@ -189,22 +195,67 @@ const initializeGraph = async () => {
   // Dynamically import Cytoscape to avoid SSR issues
   const cytoscape = (await import('cytoscape')).default
 
-  // Mock graph data
-  const elements = [
-    // Nodes
-    { data: { id: '1', name: 'John Doe', type: 'PERSON' } },
-    { data: { id: '2', name: 'Tech Corp', type: 'ORGANIZATION' } },
-    { data: { id: '3', name: 'Project Alpha', type: 'EVENT' } },
-    { data: { id: '4', name: 'San Francisco', type: 'PLACE' } },
-    { data: { id: '5', name: 'Knowledge Graphs', type: 'CONCEPT' } },
+  // Fetch real data from backend
+  const elements = []
+  
+  try {
+    // Fetch all nodes
+    const nodesResponse = await fetch('/api/nodes?page=0&size=1000')
+    const nodesData = await nodesResponse.json()
     
-    // Edges
-    { data: { id: 'e1', source: '1', target: '2', relationship: 'AFFILIATED_WITH' } },
-    { data: { id: 'e2', source: '1', target: '3', relationship: 'PARTICIPATED_IN' } },
-    { data: { id: 'e3', source: '1', target: '4', relationship: 'LOCATED_IN' } },
-    { data: { id: 'e4', source: '2', target: '4', relationship: 'LOCATED_IN' } },
-    { data: { id: 'e5', source: '3', target: '5', relationship: 'REFERENCES' } }
-  ]
+    // Fetch all edges
+    const edgesResponse = await fetch('/api/edges?page=0&size=1000')
+    const edgesData = await edgesResponse.json()
+    
+    // Create a set of node IDs that have relationships
+    const connectedNodeIds = new Set<string>()
+    
+    // Create edge elements and collect connected node IDs
+    edgesData.content.forEach((edge: any) => {
+      connectedNodeIds.add(edge.sourceId)
+      connectedNodeIds.add(edge.targetId)
+      
+      // Convert SNAKE_CASE to readable format
+      const readableType = (edge.type || 'RELATED_TO')
+        .toLowerCase()
+        .split('_')
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+      
+      elements.push({
+        data: {
+          id: edge.id,
+          source: edge.sourceId,
+          target: edge.targetId,
+          relationship: readableType
+        }
+      })
+    })
+    
+    // Only add nodes that have at least one relationship
+    let connectedNodeCount = 0
+    nodesData.content.forEach((node: any) => {
+      if (connectedNodeIds.has(node.id)) {
+        elements.push({
+          data: { 
+            id: node.id, 
+            name: node.name, 
+            type: node.type || 'ENTITY'
+          }
+        })
+        connectedNodeCount++
+      }
+    })
+    
+    // Update stats to show actual displayed counts
+    graphStats.value.nodeCount = connectedNodeCount
+    graphStats.value.edgeCount = edgesData.totalElements
+    
+    console.log('Showing', connectedNodeCount, 'connected nodes (out of', nodesData.totalElements, 'total) and', edgesData.totalElements, 'edges')
+    
+  } catch (error) {
+    console.error('Failed to fetch graph data:', error)
+  }
 
   cy = cytoscape({
     container: graphContainer.value,
@@ -218,28 +269,41 @@ const initializeGraph = async () => {
           'text-valign': 'center',
           'text-halign': 'center',
           'color': '#fff',
-          'font-size': '12px',
-          'font-weight': 'bold',
-          'text-outline-width': 2,
+          'font-size': '10px',
+          'font-weight': '500',
+          'text-outline-width': 1.5,
           'text-outline-color': '#000',
-          'width': 60,
-          'height': 60,
+          'width': 70,
+          'height': 70,
           'border-width': 2,
-          'border-color': '#fff'
+          'border-color': '#fff',
+          'text-wrap': 'wrap',
+          'text-max-width': '65px',
+          'padding': '5px'
         }
       },
       {
         selector: 'edge',
         style: {
           'width': 2,
-          'line-color': '#ccc',
-          'target-arrow-color': '#ccc',
+          'line-color': '#cbd5e1',
+          'target-arrow-color': '#94a3b8',
           'target-arrow-shape': 'triangle',
+          'target-arrow-size': 6,
           'curve-style': 'bezier',
+          'control-point-step-size': 40,
+          'edge-text-rotation': 'autorotate',
           'label': 'data(relationship)',
-          'font-size': '10px',
+          'font-size': '9px',
+          'font-weight': '500',
           'text-rotation': 'autorotate',
-          'text-margin-y': -10
+          'text-margin-y': -12,
+          'color': '#1e293b',
+          'line-opacity': 0.5,
+          'arrow-scale': 1,
+          'text-outline-width': 3,
+          'text-outline-color': '#ffffff',
+          'text-outline-opacity': 0.9
         }
       },
       {
@@ -261,8 +325,29 @@ const initializeGraph = async () => {
     layout: {
       name: selectedLayout.value,
       animate: true,
-      animationDuration: 500
-    }
+      animationDuration: 500,
+      // Force-directed (cose) layout options for much better spacing
+      idealEdgeLength: 250,  // Much longer edges
+      nodeOverlap: 100,      // More overlap prevention
+      nodeRepulsion: 10000,  // Much stronger repulsion
+      nestingFactor: 0.5,
+      gravity: -100,         // Negative gravity to spread out
+      numIter: 2000,         // More iterations for better layout
+      padding: 50,           // Padding around the graph
+      // Grid layout options
+      spacingFactor: 3,      // Much more spacing in grid
+      avoidOverlap: true,
+      condense: false,
+      // Circle layout options  
+      radius: 400,           // Much larger circle
+      avoidOverlap: true,
+      // Breadthfirst layout options
+      spacingFactor: 3,      // Much more spacing
+      avoidOverlap: true
+    },
+    minZoom: 0.1,
+    maxZoom: 3,
+    wheelSensitivity: 0.2
   })
 
   // Event listeners

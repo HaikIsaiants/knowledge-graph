@@ -108,41 +108,73 @@
               result.status === 'SUCCESS' ? 'bg-green-50' : 'bg-red-50'
             ]"
           >
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-3 flex-grow">
               <svg
                 v-if="result.status === 'SUCCESS'"
-                class="h-5 w-5 text-green-500"
+                class="h-6 w-6 text-green-500 flex-shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <svg
+                v-else-if="result.status === 'ERROR'"
+                class="h-6 w-6 text-red-500 flex-shrink-0"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <svg
                 v-else
-                class="h-5 w-5 text-red-500"
+                class="h-6 w-6 text-blue-500 flex-shrink-0 animate-spin"
                 fill="none"
-                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              <div>
-                <p class="text-sm font-medium text-gray-900">{{ result.filename }}</p>
-                <p class="text-xs text-gray-500">
-                  Job ID: {{ result.jobId }}
-                  <span v-if="result.message"> - {{ result.message }}</span>
-                </p>
+              <div class="flex-grow">
+                <p class="text-sm font-semibold text-gray-900">{{ result.filename }}</p>
+                <div class="flex items-center gap-4 mt-1">
+                  <p class="text-xs text-gray-500">
+                    <span v-if="result.status === 'SUCCESS' && (result.nodesExtracted || result.edgesExtracted)" class="text-green-600 font-medium">
+                      ✨ Extracted {{ result.nodesExtracted || 0 }} entities and {{ result.edgesExtracted || 0 }} relationships
+                    </span>
+                    <span v-else-if="result.status === 'PROCESSING'" class="text-blue-600">
+                      Processing document...
+                    </span>
+                    <span v-else>
+                      {{ result.message }}
+                    </span>
+                  </p>
+                </div>
               </div>
             </div>
-            <span
-              :class="[
-                'px-2 py-1 text-xs font-semibold rounded-full',
-                result.status === 'SUCCESS' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-              ]"
-            >
-              {{ result.status }}
-            </span>
+            <div class="flex items-center gap-2">
+              <span
+                :class="[
+                  'px-3 py-1 text-xs font-semibold rounded-full',
+                  result.status === 'SUCCESS' ? 'bg-green-100 text-green-800' : 
+                  result.status === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
+                  'bg-red-100 text-red-800'
+                ]"
+              >
+                {{ result.status }}
+              </span>
+              <button
+                v-if="result.status === 'SUCCESS'"
+                @click="viewGraph()"
+                class="px-3 py-1 bg-indigo-600 text-white text-xs font-medium rounded-full hover:bg-indigo-700 transition-colors flex items-center gap-1"
+              >
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                </svg>
+                View Graph
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -157,8 +189,10 @@ import axios from 'axios'
 interface FileUploadResult {
   jobId: string
   filename: string
-  status: 'SUCCESS' | 'ERROR'
+  status: 'SUCCESS' | 'ERROR' | 'PROCESSING'
   message?: string
+  nodesExtracted?: number
+  edgesExtracted?: number
 }
 
 const selectedFiles = ref<File[]>([])
@@ -236,12 +270,16 @@ const uploadFiles = async () => {
           }
         })
         
-        uploadResults.value.push({
+        const resultIndex = uploadResults.value.push({
           jobId: response.data.jobId,
           filename: file.name,
-          status: 'SUCCESS',
-          message: response.data.message
-        })
+          status: 'PROCESSING',
+          message: 'Processing document...'
+        }) - 1
+        
+        // Poll for job completion to get extraction stats
+        pollJobStatus(response.data.jobId, resultIndex)
+        
       } catch (error) {
         uploadResults.value.push({
           jobId: 'error-' + Date.now(),
@@ -257,5 +295,51 @@ const uploadFiles = async () => {
   } finally {
     isUploading.value = false
   }
+}
+
+const pollJobStatus = async (jobId: string, resultIndex: number) => {
+  const maxAttempts = 30
+  let attempts = 0
+  
+  const checkStatus = async () => {
+    try {
+      const response = await axios.get(`http://localhost:8080/api/files/jobs/${jobId}`)
+      const job = response.data
+      
+      if (job.status === 'COMPLETED') {
+        // Extract statistics from job metadata
+        const metadata = job.metadata?.result
+        const nodeIds = metadata?.createdNodeIds || []
+        const edgeIds = metadata?.createdEdgeIds || []
+        
+        uploadResults.value[resultIndex] = {
+          ...uploadResults.value[resultIndex],
+          status: 'SUCCESS',
+          message: 'Processing complete',
+          nodesExtracted: nodeIds.length,
+          edgesExtracted: edgeIds.length
+        }
+      } else if (job.status === 'FAILED') {
+        uploadResults.value[resultIndex].status = 'ERROR'
+        uploadResults.value[resultIndex].message = job.errorMessage || 'Processing failed'
+      } else if (attempts < maxAttempts) {
+        // Still processing, check again
+        attempts++
+        setTimeout(checkStatus, 2000)
+      }
+    } catch (error) {
+      console.error('Error checking job status:', error)
+      if (attempts < maxAttempts) {
+        attempts++
+        setTimeout(checkStatus, 2000)
+      }
+    }
+  }
+  
+  setTimeout(checkStatus, 1000)
+}
+
+const viewGraph = () => {
+  window.location.href = '/graph'
 }
 </script>

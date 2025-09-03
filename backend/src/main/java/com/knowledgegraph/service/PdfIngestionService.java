@@ -162,18 +162,19 @@ public class PdfIngestionService extends AbstractIngestionService {
                     fullText.append(fullTextStripper.getText(pdDocForEntities));
                 }
                 
-                // Extract entities using GPT
-                List<Node> extractedEntities = gptEntityExtractor.extractEntities(
+                // Extract entities and relationships using GPT
+                GPTEntityExtractor.ExtractionResult extractionResult = gptEntityExtractor.extractEntitiesAndRelationships(
                     fullText.toString(), 
                     document.getId()
                 );
                 
                 // Add extracted entity IDs to the result
-                for (Node entity : extractedEntities) {
+                for (Node entity : extractionResult.nodes) {
                     createdNodeIds.add(entity.getId());
                 }
                 
-                log.info("Extracted {} entities from PDF document", extractedEntities.size());
+                log.info("Extracted {} entities and {} relationships from PDF document", 
+                         extractionResult.nodes.size(), extractionResult.edges.size());
                 
             } catch (Exception e) {
                 log.warn("Failed to extract entities using GPT: {}", e.getMessage());
